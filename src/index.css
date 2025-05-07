@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-copper: #B87333;
+  --color-pink: #FF9ECD;
+  --color-blue: #3B82F6;
+}
+
+body {
+  background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+  min-height: 100vh;
+}
+
+.bank-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.bank-button {
+  background: linear-gradient(135deg, var(--color-copper), var(--color-pink));
+  transition: all 0.3s ease;
+}
+
+.bank-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(184, 115, 51, 0.3);
+}
+
+.bank-input {
+  border: 2px solid #e2e8f0;
+  transition: all 0.3s ease;
+}
+
+.bank-input:focus {
+  border-color: var(--color-copper);
+  box-shadow: 0 0 0 2px rgba(184, 115, 51, 0.2);
+}
