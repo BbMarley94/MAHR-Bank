@@ -6,11 +6,13 @@
   --color-copper: #B87333;
   --color-pink: #FF9ECD;
   --color-blue: #3B82F6;
+  --color-background: #1a1a1a;
 }
 
 body {
-  background: linear-gradient(135deg, #1a1a1a, #2d2d2d);
+  background: linear-gradient(135deg, var(--color-background), #2d2d2d);
   min-height: 100vh;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
 .bank-card {
@@ -18,11 +20,32 @@ body {
   backdrop-filter: blur(10px);
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  transform: translateY(0);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.bank-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
 }
 
 .bank-button {
   background: linear-gradient(135deg, var(--color-copper), var(--color-pink));
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.bank-button::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, transparent, rgba(255, 255, 255, 0.2));
+  opacity: 0;
+  transition: opacity 0.3s ease;
 }
 
 .bank-button:hover {
@@ -30,12 +53,107 @@ body {
   box-shadow: 0 4px 12px rgba(184, 115, 51, 0.3);
 }
 
+.bank-button:hover::after {
+  opacity: 1;
+}
+
+.bank-button:active {
+  transform: translateY(0);
+}
+
 .bank-input {
   border: 2px solid #e2e8f0;
-  transition: all 0.3s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .bank-input:focus {
   border-color: var(--color-copper);
-  box-shadow: 0 0 0 2px rgba(184, 115, 51, 0.2);
+  box-shadow: 0 0 0 3px rgba(184, 115, 51, 0.2);
+  background: white;
+}
+
+.bank-input:hover {
+  border-color: #cbd5e1;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-copper);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a66b2e;
+}
+
+/* Loading Animation */
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.loading-shimmer {
+  animation: shimmer 2s infinite linear;
+  background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
+  background-size: 1000px 100%;
+}
+
+/* Transaction Status Indicators */
+.status-success {
+  @apply text-green-600 bg-green-50 border-green-200;
+}
+
+.status-pending {
+  @apply text-yellow-600 bg-yellow-50 border-yellow-200;
+}
+
+/* Glassmorphism Effects */
+.glass-panel {
+  @apply backdrop-blur-lg bg-white/30 border border-white/20;
+}
+
+/* Typography Enhancements */
+.heading-gradient {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-copper to-bankPink;
+}
+
+/* Card Transitions */
+.card-enter {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.card-enter-active {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 300ms, transform 300ms;
+}
+
+/* Form Field Animations */
+.form-field {
+  @apply transition-all duration-300 ease-in-out;
+}
+
+.form-field:focus-within {
+  @apply transform -translate-y-1;
+}
+
+/* Balance Display */
+.balance-display {
+  @apply font-mono text-2xl font-bold;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
