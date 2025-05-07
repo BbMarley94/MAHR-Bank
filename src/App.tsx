@@ -42,6 +42,10 @@ function App() {
     setIsLoading(false)
   }, [])
 
+  const formatNumber = (num: number) => {
+    return num.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+  }
+
   async function ensureBbMarleyAccount() {
     const { data: existingUser } = await supabase
       .from('characters')
@@ -110,7 +114,7 @@ function App() {
       .insert([
         { 
           name: newUserName,
-          balance: parseFloat(newUserBalance),
+          balance: parseFloat(parseFloat(newUserBalance).toFixed(2)),
           user_id: '00000000-0000-0000-0000-000000000000'
         }
       ])
@@ -179,9 +183,9 @@ function App() {
       return
     }
 
-    const amount = parseFloat(transferAmount)
-    const fee = amount * 0.08 // 8% fee
-    const totalDeduction = amount + fee // Total amount to deduct from sender
+    const amount = parseFloat(parseFloat(transferAmount).toFixed(2))
+    const fee = parseFloat((amount * 0.08).toFixed(2)) // 8% fee
+    const totalDeduction = parseFloat((amount + fee).toFixed(2)) // Total amount to deduct from sender
     
     const fromChar = users.find(c => c.id === fromUser)
     const toChar = users.find(c => c.id === toUser)
@@ -222,19 +226,19 @@ function App() {
         { 
           id: fromChar.id, 
           name: fromChar.name,
-          balance: fromChar.balance - totalDeduction, // Deduct both amount and fee
+          balance: parseFloat((fromChar.balance - totalDeduction).toFixed(2)), // Deduct both amount and fee
           user_id: fromChar.user_id
         },
         { 
           id: toChar.id, 
           name: toChar.name,
-          balance: toChar.balance + amount, // Receive full amount
+          balance: parseFloat((toChar.balance + amount).toFixed(2)), // Receive full amount
           user_id: toChar.user_id
         },
         {
           id: bbMarley.id,
           name: bbMarley.name,
-          balance: bbMarley.balance + fee,
+          balance: parseFloat((bbMarley.balance + fee).toFixed(2)),
           user_id: bbMarley.user_id
         }
       ])
@@ -254,7 +258,7 @@ function App() {
   async function withdrawCash(e: React.FormEvent) {
     e.preventDefault()
     
-    const amount = parseFloat(withdrawalAmount)
+    const amount = parseFloat(parseFloat(withdrawalAmount).toFixed(2))
     const user = users.find(u => u.id === withdrawalUser)
     
     if (!user) return
@@ -281,7 +285,7 @@ function App() {
 
     const { error: updateError } = await supabase
       .from('characters')
-      .update({ balance: user.balance - amount })
+      .update({ balance: parseFloat((user.balance - amount).toFixed(2)) })
       .eq('id', user.id)
 
     if (updateError) {
@@ -303,9 +307,9 @@ function App() {
       return
     }
 
-    const amount = parseFloat(addFundsAmount)
-    const fee = amount * 0.05 // 5% fee
-    const actualAmount = amount - fee
+    const amount = parseFloat(parseFloat(addFundsAmount).toFixed(2))
+    const fee = parseFloat((amount * 0.05).toFixed(2)) // 5% fee
+    const actualAmount = parseFloat((amount - fee).toFixed(2))
     
     const user = users.find(u => u.id === addFundsUser)
     const bbMarley = users.find(c => c.id === bbMarleyId)
@@ -338,13 +342,13 @@ function App() {
         {
           id: user.id,
           name: user.name,
-          balance: user.balance + actualAmount,
+          balance: parseFloat((user.balance + actualAmount).toFixed(2)),
           user_id: user.user_id
         },
         {
           id: bbMarley.id,
           name: bbMarley.name,
-          balance: bbMarley.balance + fee,
+          balance: parseFloat((bbMarley.balance + fee).toFixed(2)),
           user_id: bbMarley.user_id
         }
       ])
@@ -379,6 +383,8 @@ function App() {
             <div>
               <input
                 type="number"
+                step="0.01"
+                min="0"
                 placeholder="Initial Balance"
                 value={newUserBalance}
                 onChange={(e) => setNewUserBalance(e.target.value)}
@@ -408,13 +414,15 @@ function App() {
               >
                 <option value="">Select Account</option>
                 {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${user.balance})</option>
+                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
                 ))}
               </select>
             </div>
             <div>
               <input
                 type="number"
+                step="0.01"
+                min="0"
                 placeholder="Amount to Add"
                 value={addFundsAmount}
                 onChange={(e) => setAddFundsAmount(e.target.value)}
@@ -443,13 +451,15 @@ function App() {
               >
                 <option value="">Select Account</option>
                 {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${user.balance})</option>
+                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
                 ))}
               </select>
             </div>
             <div>
               <input
                 type="number"
+                step="0.01"
+                min="0"
                 placeholder="Withdrawal Amount"
                 value={withdrawalAmount}
                 onChange={(e) => setWithdrawalAmount(e.target.value)}
@@ -479,7 +489,7 @@ function App() {
               >
                 <option value="">From Account</option>
                 {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${user.balance})</option>
+                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
                 ))}
               </select>
             </div>
@@ -492,13 +502,15 @@ function App() {
               >
                 <option value="">To Account</option>
                 {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${user.balance})</option>
+                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
                 ))}
               </select>
             </div>
             <div>
               <input
                 type="number"
+                step="0.01"
+                min="0"
                 placeholder="Amount"
                 value={transferAmount}
                 onChange={(e) => setTransferAmount(e.target.value)}
@@ -536,7 +548,7 @@ function App() {
               <div className="flex justify-between items-start">
                 <div>
                   <h3 className="font-semibold text-lg">{user.name}</h3>
-                  <p className="text-copper font-medium">Balance: ${user.balance}</p>
+                  <p className="text-copper font-medium">Balance: ${formatNumber(user.balance)}</p>
                 </div>
                 {user.name !== 'Bb Marley' && (
                   <button
@@ -580,14 +592,14 @@ function App() {
                   {isFee ? (
                     `Fee payment from ${fromUser?.name} to Bb Marley`
                   ) : isAddFunds ? (
-                    `${fromUser?.name} added $${tx.amount} in funds`
+                    `${fromUser?.name} added $${formatNumber(tx.amount)} in funds`
                   ) : isCashWithdrawal ? (
-                    `${fromUser?.name} withdrew $${tx.amount} in cash`
+                    `${fromUser?.name} withdrew $${formatNumber(tx.amount)} in cash`
                   ) : (
                     `From: ${fromUser?.name} → To: ${toUser?.name}`
                   )}
                 </p>
-                <p className="text-copper">Amount: ${tx.amount}</p>
+                <p className="text-copper">Amount: ${formatNumber(tx.amount)}</p>
                 <p className="text-sm text-gray-500 mt-2">
                   {new Date(tx.created_at).toLocaleString()}
                 </p>
