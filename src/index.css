@@ -25,8 +25,7 @@ body {
 }
 
 .bank-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
 }
 
 .bank-button {
@@ -96,64 +95,27 @@ body {
   background: #a66b2e;
 }
 
-/* Loading Animation */
-@keyframes shimmer {
-  0% {
-    background-position: -1000px 0;
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
   }
-  100% {
-    background-position: 1000px 0;
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
-.loading-shimmer {
-  animation: shimmer 2s infinite linear;
-  background: linear-gradient(to right, #f6f7f8 8%, #edeef1 18%, #f6f7f8 33%);
-  background-size: 1000px 100%;
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Transaction Status Indicators */
-.status-success {
-  @apply text-green-600 bg-green-50 border-green-200;
+/* Account Card Hover Effects */
+.account-card {
+  transition: all 0.3s ease;
 }
 
-.status-pending {
-  @apply text-yellow-600 bg-yellow-50 border-yellow-200;
-}
-
-/* Glassmorphism Effects */
-.glass-panel {
-  @apply backdrop-blur-lg bg-white/30 border border-white/20;
-}
-
-/* Typography Enhancements */
-.heading-gradient {
-  @apply bg-clip-text text-transparent bg-gradient-to-r from-copper to-bankPink;
-}
-
-/* Card Transitions */
-.card-enter {
-  opacity: 0;
-  transform: translateY(20px);
-}
-
-.card-enter-active {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 300ms, transform 300ms;
-}
-
-/* Form Field Animations */
-.form-field {
-  @apply transition-all duration-300 ease-in-out;
-}
-
-.form-field:focus-within {
-  @apply transform -translate-y-1;
-}
-
-/* Balance Display */
-.balance-display {
-  @apply font-mono text-2xl font-bold;
-  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+.account-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
 }

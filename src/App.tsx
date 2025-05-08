@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import './App.css'
+import logo from './assets/logo.png'
 
 interface User {
   id: string
@@ -18,6 +19,9 @@ interface Transaction {
 }
 
 type View = 'actions' | 'users' | 'transactions'
+type ActionType = 'new-account' | 'add-funds' | 'withdraw' | 'transfer' | null
+type SortField = 'name' | 'balance'
+type SortOrder = 'asc' | 'desc'
 
 function App() {
   const [users, setUsers] = useState<User[]>([])
@@ -32,8 +36,12 @@ function App() {
   const [addFundsAmount, setAddFundsAmount] = useState('')
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [currentView, setCurrentView] = useState<View>('actions')
+  const [selectedAction, setSelectedAction] = useState<ActionType>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [bbMarleyId, setBbMarleyId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortField, setSortField] = useState<SortField>('name')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('asc')
 
   useEffect(() => {
     fetchUsers()
@@ -131,35 +139,11 @@ function App() {
 
     setNewUserName('')
     setNewUserBalance('')
+    setSelectedAction(null)
     fetchUsers()
   }
 
   async function deleteUser(id: string) {
-    // Delete transactions where the user is the source
-    const { error: fromError } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('from_character_id', id)
-
-    if (fromError) {
-      console.error('Error deleting transactions (from):', fromError)
-      alert('Error deleting transactions (from): ' + fromError.message)
-      return
-    }
-
-    // Delete transactions where the user is the target
-    const { error: toError } = await supabase
-      .from('transactions')
-      .delete()
-      .eq('to_character_id', id)
-
-    if (toError) {
-      console.error('Error deleting transactions (to):', toError)
-      alert('Error deleting transactions (to): ' + toError.message)
-      return
-    }
-
-    // Delete the user
     const { error: userError } = await supabase
       .from('characters')
       .delete()
@@ -205,7 +189,7 @@ function App() {
         {
           from_character_id: fromUser,
           to_character_id: toUser,
-          amount: amount // Full transfer amount goes to recipient
+          amount: amount
         },
         {
           from_character_id: fromUser,
@@ -226,13 +210,13 @@ function App() {
         { 
           id: fromChar.id, 
           name: fromChar.name,
-          balance: parseFloat((fromChar.balance - totalDeduction).toFixed(2)), // Deduct both amount and fee
+          balance: parseFloat((fromChar.balance - totalDeduction).toFixed(2)),
           user_id: fromChar.user_id
         },
         { 
           id: toChar.id, 
           name: toChar.name,
-          balance: parseFloat((toChar.balance + amount).toFixed(2)), // Receive full amount
+          balance: parseFloat((toChar.balance + amount).toFixed(2)),
           user_id: toChar.user_id
         },
         {
@@ -251,6 +235,7 @@ function App() {
     setFromUser('')
     setToUser('')
     setTransferAmount('')
+    setSelectedAction(null)
     fetchUsers()
     fetchTransactions()
   }
@@ -295,6 +280,7 @@ function App() {
 
     setWithdrawalUser('')
     setWithdrawalAmount('')
+    setSelectedAction(null)
     fetchUsers()
     fetchTransactions()
   }
@@ -360,173 +346,246 @@ function App() {
 
     setAddFundsUser('')
     setAddFundsAmount('')
+    setSelectedAction(null)
     fetchUsers()
     fetchTransactions()
   }
 
   const renderActionsTab = () => {
+    const actionButtons = [
+      { type: 'new-account', label: 'New Account', icon: '👤' },
+      { type: 'add-funds', label: 'Add Funds', icon: '💰' },
+      { type: 'withdraw', label: 'Withdraw Cash', icon: '💵' },
+      { type: 'transfer', label: 'Transfer Money', icon: '↔️' },
+    ]
+
     return (
-      <>
-        <div className="bank-card p-6 rounded-lg mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-copper">New Account</h2>
-          <form onSubmit={addUser} className="space-y-4">
-            <div>
-              <input
-                type="text"
-                placeholder="Account Holder Name"
-                value={newUserName}
-                onChange={(e) => setNewUserName(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              />
-            </div>
-            <div>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Initial Balance"
-                value={newUserBalance}
-                onChange={(e) => setNewUserBalance(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              />
-            </div>
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {actionButtons.map(({ type, label, icon }) => (
             <button
-              type="submit"
-              className="bank-button text-white px-6 py-3 rounded-lg w-full font-semibold"
+              key={type}
+              onClick={() => setSelectedAction(type as ActionType)}
+              className={`bank-card p-6 text-center transition-all ${
+                selectedAction === type 
+                  ? 'ring-2 ring-copper shadow-lg' 
+                  : 'hover:shadow-md'
+              }`}
             >
-              Create Account
+              <div className="text-3xl mb-2">{icon}</div>
+              <div className="font-semibold text-gray-800">{label}</div>
             </button>
-          </form>
+          ))}
         </div>
 
-        <div className="bank-card p-6 rounded-lg mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-copper">Add Funds</h2>
-          <p className="text-sm text-gray-600 mb-4">Note: A 5% fee will be deducted from the deposited amount</p>
-          <form onSubmit={addFunds} className="space-y-4">
-            <div>
-              <select
-                value={addFundsUser}
-                onChange={(e) => setAddFundsUser(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              >
-                <option value="">Select Account</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Amount to Add"
-                value={addFundsAmount}
-                onChange={(e) => setAddFundsAmount(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bank-button text-white px-6 py-3 rounded-lg w-full font-semibold"
-            >
-              Add Funds
-            </button>
-          </form>
-        </div>
+        {selectedAction && (
+          <div className="bank-card p-6 animate-fade-in">
+            {selectedAction === 'new-account' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-copper">New Account</h2>
+                <form onSubmit={addUser} className="space-y-4">
+                  <div>
+                    <input
+                      type="text"
+                      placeholder="Account Holder Name"
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Initial Balance"
+                      value={newUserBalance}
+                      onChange={(e) => setNewUserBalance(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      type="submit"
+                      className="bank-button text-white px-6 py-3 rounded-lg flex-1 font-semibold"
+                    >
+                      Create Account
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction(null)}
+                      className="px-6 py-3 rounded-lg flex-1 font-semibold border border-gray-300 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
-        <div className="bank-card p-6 rounded-lg mb-8">
-          <h2 className="text-xl font-semibold mb-4 text-copper">Cash Withdrawal</h2>
-          <form onSubmit={withdrawCash} className="space-y-4">
-            <div>
-              <select
-                value={withdrawalUser}
-                onChange={(e) => setWithdrawalUser(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              >
-                <option value="">Select Account</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Withdrawal Amount"
-                value={withdrawalAmount}
-                onChange={(e) => setWithdrawalAmount(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bank-button text-white px-6 py-3 rounded-lg w-full font-semibold"
-            >
-              Withdraw Cash
-            </button>
-          </form>
-        </div>
+            {selectedAction === 'add-funds' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-copper">Add Funds</h2>
+                <p className="text-sm text-gray-600 mb-4">Note: A 5% fee will be deducted from the deposited amount</p>
+                <form onSubmit={addFunds} className="space-y-4">
+                  <div>
+                    <select
+                      value={addFundsUser}
+                      onChange={(e) => setAddFundsUser(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    >
+                      <option value="">Select Account</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Amount to Add"
+                      value={addFundsAmount}
+                      onChange={(e) => setAddFundsAmount(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      type="submit"
+                      className="bank-button text-white px-6 py-3 rounded-lg flex-1 font-semibold"
+                    >
+                      Add Funds
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction(null)}
+                      className="px-6 py-3 rounded-lg flex-1 font-semibold border border-gray-300 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
 
-        <div className="bank-card p-6 rounded-lg">
-          <h2 className="text-xl font-semibold mb-4 text-copper">Transfer Money</h2>
-          <p className="text-sm text-gray-600 mb-4">Note: An 8% fee will be charged to the sender in addition to the transfer amount</p>
-          <form onSubmit={transferMoney} className="space-y-4">
-            <div>
-              <select
-                value={fromUser}
-                onChange={(e) => setFromUser(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              >
-                <option value="">From Account</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <select
-                value={toUser}
-                onChange={(e) => setToUser(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              >
-                <option value="">To Account</option>
-                {users.map(user => (
-                  <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <input
-                type="number"
-                step="0.01"
-                min="0"
-                placeholder="Amount"
-                value={transferAmount}
-                onChange={(e) => setTransferAmount(e.target.value)}
-                className="bank-input w-full p-3 rounded-lg"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              className="bank-button text-white px-6 py-3 rounded-lg w-full font-semibold"
-            >
-              Transfer Money
-            </button>
-          </form>
-        </div>
-      </>
+            {selectedAction === 'withdraw' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-copper">Cash Withdrawal</h2>
+                <form onSubmit={withdrawCash} className="space-y-4">
+                  <div>
+                    <select
+                      value={withdrawalUser}
+                      onChange={(e) => setWithdrawalUser(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    >
+                      <option value="">Select Account</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Withdrawal Amount"
+                      value={withdrawalAmount}
+                      onChange={(e) => setWithdrawalAmount(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      type="submit"
+                      className="bank-button text-white px-6 py-3 rounded-lg flex-1 font-semibold"
+                    >
+                      Withdraw Cash
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction(null)}
+                      className="px-6 py-3 rounded-lg flex-1 font-semibold border border-gray-300 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+
+            {selectedAction === 'transfer' && (
+              <div>
+                <h2 className="text-xl font-semibold mb-4 text-copper">Transfer Money</h2>
+                <p className="text-sm text-gray-600 mb-4">Note: An 8% fee will be charged to the sender in addition to the transfer amount</p>
+                <form onSubmit={transferMoney} className="space-y-4">
+                  <div>
+                    <select
+                      value={fromUser}
+                      onChange={(e) => setFromUser(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    >
+                      <option value="">From Account</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <select
+                      value={toUser}
+                      onChange={(e) => setToUser(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    >
+                      <option value="">To Account</option>
+                      {users.map(user => (
+                        <option key={user.id} value={user.id}>{user.name} (Balance: ${formatNumber(user.balance)})</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="Amount"
+                      value={transferAmount}
+                      onChange={(e) => setTransferAmount(e.target.value)}
+                      className="bank-input w-full p-3 rounded-lg"
+                      required
+                    />
+                  </div>
+                  <div className="flex space-x-4">
+                    <button
+                      type="submit"
+                      className="bank-button text-white px-6 py-3 rounded-lg flex-1 font-semibold"
+                    >
+                      Transfer Money
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedAction(null)}
+                      className="px-6 py-3 rounded-lg flex-1 font-semibold border border-gray-300 hover:bg-gray-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     )
   }
 
@@ -539,28 +598,108 @@ function App() {
       )
     }
 
+    const filteredUsers = users.filter(user =>
+      user.name.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    const sortedUsers = [...filteredUsers].sort((a, b) => {
+      if (sortField === 'name') {
+        return sortOrder === 'asc'
+          ? a.name.localeCompare(b.name)
+          : b.name.localeCompare(a.name)
+      } else {
+        return sortOrder === 'asc'
+          ? a.balance - b.balance
+          : b.balance - a.balance
+      }
+    })
+
+    const toggleSort = (field: SortField) => {
+      if (sortField === field) {
+        setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')
+      } else {
+        setSortField(field)
+        setSortOrder('asc')
+      }
+    }
+
     return (
-      <div className="bank-card p-6 rounded-lg">
-        <h2 className="text-xl font-semibold mb-4 text-copper">Accounts (Alphabetical)</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {users.map(user => (
-            <div key={user.id} className="p-4 border rounded-lg bg-gradient-to-br from-white to-gray-50">
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="font-semibold text-lg">{user.name}</h3>
-                  <p className="text-copper font-medium">Balance: ${formatNumber(user.balance)}</p>
-                </div>
-                {user.name !== 'Bb Marley' && (
-                  <button
-                    onClick={() => deleteUser(user.id)}
-                    className="text-red-500 hover:text-red-700 transition-colors"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
+      <div className="space-y-6">
+        <div className="bank-card p-6 rounded-lg">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-6">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                placeholder="Search accounts..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="bank-input w-full pl-10 pr-4 py-2 rounded-lg"
+              />
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
+                🔍
+              </span>
             </div>
-          ))}
+            <div className="flex gap-2">
+              <button
+                onClick={() => toggleSort('name')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  sortField === 'name'
+                    ? 'bg-copper text-white'
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                Name {sortField === 'name' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+              <button
+                onClick={() => toggleSort('balance')}
+                className={`px-4 py-2 rounded-lg transition-colors ${
+                  sortField === 'balance'
+                    ? 'bg-copper text-white'
+                    : 'bg-gray-100 hover:bg-gray-200'
+                }`}
+              >
+                Balance {sortField === 'balance' && (sortOrder === 'asc' ? '↑' : '↓')}
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {sortedUsers.map(user => (
+              <div
+                key={user.id}
+                className="bank-card p-6 rounded-lg bg-gradient-to-br from-white to-gray-50 hover:shadow-lg transition-all duration-300"
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-xl">{user.name}</h3>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full bg-green-400"></div>
+                      <p className="text-copper font-medium text-lg">
+                        ${formatNumber(user.balance)}
+                      </p>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      Account ID: {user.id.slice(0, 8)}...
+                    </p>
+                  </div>
+                  {user.name !== 'Bb Marley' && (
+                    <button
+                      onClick={() => deleteUser(user.id)}
+                      className="text-red-500 hover:text-red-700 transition-colors p-2 hover:bg-red-50 rounded-full"
+                    >
+                      ❌
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {sortedUsers.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No accounts found matching "{searchTerm}"
+            </div>
+          )}
         </div>
       </div>
     )
@@ -615,10 +754,14 @@ function App() {
     <div className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
         <div className="mb-8 text-center">
+          <img src={logo} alt="MAHR Bank Logo" className="w-16 h-16 mx-auto mb-4 rounded-full object-cover" />
           <h1 className="text-4xl font-bold mb-4 text-white">MAHR Bank</h1>
           <div className="flex justify-center space-x-4">
             <button
-              onClick={() => setCurrentView('actions')}
+              onClick={() => {
+                setCurrentView('actions')
+                setSelectedAction(null)
+              }}
               className={`px-6 py-2 rounded-lg transition-all ${
                 currentView === 'actions'
                   ? 'bank-button text-white'
@@ -628,7 +771,10 @@ function App() {
               Actions
             </button>
             <button
-              onClick={() => setCurrentView('users')}
+              onClick={() => {
+                setCurrentView('users')
+                setSelectedAction(null)
+              }}
               className={`px-6 py-2 rounded-lg transition-all ${
                 currentView === 'users'
                   ? 'bank-button text-white'
@@ -638,7 +784,10 @@ function App() {
               Accounts
             </button>
             <button
-              onClick={() => setCurrentView('transactions')}
+              onClick={() => {
+                setCurrentView('transactions')
+                setSelectedAction(null)
+              }}
               className={`px-6 py-2 rounded-lg transition-all ${
                 currentView === 'transactions'
                   ? 'bank-button text-white'
