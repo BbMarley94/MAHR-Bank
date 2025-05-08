@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './lib/supabase'
 import './App.css'
-import logo from './assets/logo.png'
+import { Header } from './components/Header'
+import { Footer } from './components/Footer'
 
 interface User {
   id: string
@@ -751,12 +752,11 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="mb-8 text-center">
-          <img src={logo} alt="MAHR Bank Logo" className="w-16 h-16 mx-auto mb-4 rounded-full object-cover" />
-          <h1 className="text-4xl font-bold mb-4 text-white">MAHR Bank</h1>
-          <div className="flex justify-center space-x-4">
+    <div className="min-h-screen">
+      <Header />
+      <main className="pt-24 px-8 pb-16">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex justify-center space-x-4 mb-8">
             <button
               onClick={() => {
                 setCurrentView('actions')
@@ -797,12 +797,13 @@ function App() {
               Transactions
             </button>
           </div>
-        </div>
 
-        {currentView === 'actions' && renderActionsTab()}
-        {currentView === 'users' && renderUsersTab()}
-        {currentView === 'transactions' && renderTransactionsTab()}
-      </div>
+          {currentView === 'actions' && renderActionsTab()}
+          {currentView === 'users' && renderUsersTab()}
+          {currentView === 'transactions' && renderTransactionsTab()}
+        </div>
+      </main>
+      <Footer />
     </div>
   )
 }
